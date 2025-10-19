@@ -19,6 +19,6 @@ async def delete(payload: dict):
         raise HTTPException(status_code=400, detail="fileId is required")
 
     removed = vec_store.delete_by_file_id(str(file_id))
-    registry.delete_file(str(file_id))
+    await registry.delete_file(str(file_id))
 
     return {"ok": True, "removed": removed}

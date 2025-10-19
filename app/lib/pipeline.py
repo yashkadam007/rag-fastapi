@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 import uuid
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from fastapi import HTTPException, status
 
@@ -23,7 +23,7 @@ def generate_file_id() -> str:
     return uuid.uuid4().hex
 
 
-def ingest_document(
+async def ingest_document(
     *,
     filename: str,
     data: bytes,
@@ -75,8 +75,8 @@ def ingest_document(
 
     upserted = vec_store.upsert(rows)
 
-    # Update registry
-    registry.upsert_file(
+    # Update registry (async)
+    await registry.upsert_file(
         file_id=assigned_file_id,
         filename=filename,
         size_bytes=actual_size,

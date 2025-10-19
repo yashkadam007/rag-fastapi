@@ -36,6 +36,24 @@ EMBEDDING_MODEL: Final[str] = "models/text-embedding-004"
 # Use a stable alias by default; can be overridden via env
 GENERATION_MODEL: Final[str] = os.getenv("GENERATION_MODEL", "gemini-2.5-flash")
 
+# Database configuration (Neon Postgres)
+DATABASE_URL: Final[str | None] = os.getenv("DATABASE_URL")
+try:
+    DB_POOL_SIZE: Final[int] = int(os.getenv("DB_POOL_SIZE", "5"))
+except ValueError:
+    DB_POOL_SIZE = 5
+try:
+    DB_MAX_OVERFLOW: Final[int] = int(os.getenv("DB_MAX_OVERFLOW", "5"))
+except ValueError:
+    DB_MAX_OVERFLOW = 5
+try:
+    DB_POOL_RECYCLE: Final[int] = int(os.getenv("DB_POOL_RECYCLE", "300"))
+except ValueError:
+    DB_POOL_RECYCLE = 300
+
+# Feature flag for safe rollback to JSON registry
+USE_JSON_REGISTRY: Final[bool] = os.getenv("USE_JSON_REGISTRY", "false").lower() == "true"
+
 def data_file(path: Path) -> Path:
     """Ensure a data file exists; create with empty array if missing."""
     if not path.exists():

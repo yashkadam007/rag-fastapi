@@ -23,7 +23,7 @@ async def ingest_file(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"File too large. Max {config.MAX_UPLOAD_MB}MB.",
         )
-    result = ingest_document(
+    result = await ingest_document(
         filename=file.filename,
         data=data,
         workspace=workspace,
@@ -72,7 +72,7 @@ async def ingest_url(payload: dict):
     if size_bytes > config.MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=400, detail=f"File too large. Max {config.MAX_UPLOAD_MB}MB.")
 
-    result = ingest_document(
+    result = await ingest_document(
         filename=filename,
         data=data,
         workspace=workspace,

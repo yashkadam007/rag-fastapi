@@ -73,7 +73,7 @@ async def ingest_document(
         }
         rows.append(row)
 
-    upserted = vec_store.upsert(rows)
+    upserted = await vec_store.upsert(rows)
 
     # Update registry (async)
     await registry.upsert_file(

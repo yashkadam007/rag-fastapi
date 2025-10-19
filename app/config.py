@@ -54,6 +54,13 @@ except ValueError:
 # Feature flag for safe rollback to JSON registry
 USE_JSON_REGISTRY: Final[bool] = os.getenv("USE_JSON_REGISTRY", "false").lower() == "true"
 
+# Vector store configuration
+try:
+    EMBEDDING_DIM: Final[int] = int(os.getenv("EMBEDDING_DIM", "768"))
+except ValueError:
+    EMBEDDING_DIM = 768
+USE_JSON_VECTOR_STORE: Final[bool] = os.getenv("USE_JSON_VECTOR_STORE", "false").lower() == "true"
+
 def data_file(path: Path) -> Path:
     """Ensure a data file exists; create with empty array if missing."""
     if not path.exists():

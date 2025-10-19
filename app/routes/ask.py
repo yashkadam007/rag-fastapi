@@ -26,7 +26,7 @@ async def ask(payload: dict):
         raise HTTPException(status_code=400, detail="Query 'q' is required")
 
     q_vec = embed_query(q)
-    results = vec_store.search(q_vec, workspace=workspace, k=k)
+    results = await vec_store.search(q_vec, workspace=workspace, k=k)
 
     # Limit context to top 8 chunks
     context_items = results[:8]

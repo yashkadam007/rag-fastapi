@@ -1,0 +1,57 @@
+# Environments
+.venv/
+venv/
+env/
+.venv*/
+.python-version
+
+# Environment files
+.env
+.env.*
+
+# Python caches and compiled files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Packaging artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Test and coverage
+.coverage
+coverage.xml
+htmlcov/
+.cache/
+.pytest_cache/
+.mypy_cache/
+.pytype/
+.ruff_cache/
+.pyre/
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local data and logs
+data/
+logs/
+*.log
+
+# FastAPI/uvicorn runtime
+*.pid
+
+# Tooling (Cursor / agent tools)
+.cursor/
+.agent-tools/
+

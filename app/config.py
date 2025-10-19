@@ -1,0 +1,48 @@
+from __future__ import annotations
+
+import os
+from pathlib import Path
+from typing import Final
+
+from dotenv import load_dotenv
+
+
+# Load environment variables from .env if present
+load_dotenv()
+
+# Base paths
+PROJECT_ROOT: Final[Path] = Path(__file__).resolve().parent.parent
+DATA_DIR: Final[Path] = PROJECT_ROOT / "data"
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+# Files
+VEC_PATH: Final[Path] = DATA_DIR / "vec.json"
+REGISTRY_PATH: Final[Path] = DATA_DIR / "registry.json"
+
+# Runtime configuration
+GOOGLE_API_KEY: Final[str | None] = os.getenv("GOOGLE_API_KEY")
+DEFAULT_WORKSPACE: Final[str] = os.getenv("DEFAULT_WORKSPACE", "default")
+LOG_LEVEL: Final[str] = os.getenv("LOG_LEVEL", "INFO")
+
+try:
+    MAX_UPLOAD_MB: Final[int] = int(os.getenv("MAX_UPLOAD_MB", "25"))
+except ValueError:
+    MAX_UPLOAD_MB = 25
+
+MAX_UPLOAD_BYTES: Final[int] = MAX_UPLOAD_MB * 1024 * 1024
+
+# Models
+EMBEDDING_MODEL: Final[str] = "models/text-embedding-004"
+# Use a stable alias by default; can be overridden via env
+GENERATION_MODEL: Final[str] = os.getenv("GENERATION_MODEL", "gemini-2.5-flash")
+
+def data_file(path: Path) -> Path:
+    """Ensure a data file exists; create with empty array if missing."""
+    if not path.exists():
+        path.write_text("[]", encoding="utf-8")
+    return path
+
+
+# Ensure store files exist
+_ = data_file(VEC_PATH)
+_ = data_file(REGISTRY_PATH)

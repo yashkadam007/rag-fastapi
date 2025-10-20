@@ -10,7 +10,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app import config
 from app.lib.db import SessionLocal
-from app.store.vector_models import Chunk
+from app.store.models import Document, Chunk
 
 
 Row = Dict[str, object]
@@ -48,12 +48,12 @@ class JsonVectorStore:
         self._write(merged)
         return count
 
-    def delete_by_file_id(self, file_id: str) -> int:
+    def delete_by_document_id(self, document_id: str) -> int:
         rows = self._read()
         kept: List[Row] = []
         removed = 0
         for r in rows:
-            if str(r.get("fileId")) == file_id:
+            if str(r.get("documentId")) == document_id:
                 removed += 1
             else:
                 kept.append(r)
@@ -69,12 +69,12 @@ class JsonVectorStore:
             return 0.0
         return float(np.dot(a, b) / denom)
 
-    def search(self, query_vec: List[float], *, workspace: str, k: int = 15) -> List[Tuple[Row, float]]:
+    def search(self, query_vec: List[float], *, chat_id: str, k: int = 15) -> List[Tuple[Row, float]]:
         rows = self._read()
         q = np.array(query_vec, dtype=np.float32)
         candidates: List[Tuple[Row, float]] = []
         for r in rows:
-            if str(r.get("workspace")) != workspace:
+            if str(r.get("chatId")) != chat_id:
                 continue
             emb = r.get("embedding")
             if not isinstance(emb, list):
@@ -98,10 +98,8 @@ class VectorStore:
         values = [
             {
                 "id": r["id"],
-                "file_id": r["fileId"],
-                "filename": r["filename"],
+                "document_id": r["documentId"],
                 "chunk_id": r["chunkId"],
-                "workspace": r["workspace"],
                 "text": r["text"],
                 "embedding": r["embedding"],
                 "created_at": r["createdAt"],
@@ -115,10 +113,8 @@ class VectorStore:
             stmt = stmt.on_conflict_do_update(
                 index_elements=[Chunk.id],
                 set_={
-                    "file_id": stmt.excluded.file_id,
-                    "filename": stmt.excluded.filename,
+                    "document_id": stmt.excluded.document_id,
                     "chunk_id": stmt.excluded.chunk_id,
-                    "workspace": stmt.excluded.workspace,
                     "text": stmt.excluded.text,
                     "embedding": stmt.excluded.embedding,
                     "created_at": stmt.excluded.created_at,
@@ -128,37 +124,36 @@ class VectorStore:
             await session.commit()
             return len(values)
 
-    async def delete_by_file_id(self, file_id: str) -> int:
+    async def delete_by_document_id(self, document_id: str) -> int:
         if config.USE_JSON_VECTOR_STORE or not SessionLocal:
-            return self._json.delete_by_file_id(file_id)
+            return self._json.delete_by_document_id(document_id)
         async with SessionLocal() as session:  # type: ignore[arg-type]
-            result = await session.execute(delete(Chunk).where(Chunk.file_id == file_id))
+            result = await session.execute(delete(Chunk).where(Chunk.document_id == document_id))
             await session.commit()
             return int(result.rowcount or 0)
 
-    async def search(self, query_vec: List[float], *, workspace: str, k: int = 15) -> List[Tuple[Row, float]]:
+    async def search(self, query_vec: List[float], *, chat_id: str, k: int = 15) -> List[Tuple[Row, float]]:
         if config.USE_JSON_VECTOR_STORE or not SessionLocal:
-            return self._json.search(query_vec, workspace=workspace, k=k)
+            return self._json.search(query_vec, chat_id=chat_id, k=k)
         async with SessionLocal() as session:  # type: ignore[arg-type]
-            # Cosine distance ascending → smallest distance = best match
             stmt = (
-                select(Chunk, Chunk.embedding.cosine_distance(query_vec).label("distance"))
-                .where(Chunk.workspace == workspace)
+                select(Chunk, Document, Chunk.embedding.cosine_distance(query_vec).label("distance"))
+                .where(Chunk.document_id == Document.id)
+                .where(Document.chat_id == chat_id)
                 .order_by("distance")
                 .limit(max(0, k))
             )
             res = await session.execute(stmt)
             pairs: List[Tuple[Row, float]] = []
-            for row, distance in res.all():
+            for chunk, doc, distance in res.all():
                 out: Row = {
-                    "id": row.id,
-                    "fileId": row.file_id,
-                    "filename": row.filename,
-                    "chunkId": row.chunk_id,
-                    "workspace": row.workspace,
-                    "text": row.text,
+                    "id": chunk.id,
+                    "documentId": str(doc.id),
+                    "filename": doc.filename,
+                    "chunkId": chunk.chunk_id,
+                    "chatId": str(doc.chat_id),
+                    "text": chunk.text,
                 }
-                # Convert distance to similarity for caller parity with JSON cosine
                 sim = 1.0 - float(distance)
                 pairs.append((out, sim))
             return pairs

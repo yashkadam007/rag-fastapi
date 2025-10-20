@@ -10,32 +10,32 @@ from app import config
 from app.lib.chunker import chunk_text
 from app.lib.embeddings import embed_texts
 from app.lib.parsers import parse_from_bytes
-from app.store.registry import Registry
 from app.store.vector_store import VectorStore
+from app.lib.db import SessionLocal
+from app.store.models import Document
 
 
-registry = Registry(config.REGISTRY_PATH)
 vec_store = VectorStore(config.VEC_PATH)
 
 
-def generate_file_id() -> str:
-    """Generate a unique file id."""
-    return uuid.uuid4().hex
+def generate_document_id() -> str:
+    """Generate a unique document id as a UUIDv4 string (with hyphens)."""
+    return str(uuid.uuid4())
 
 
 async def ingest_document(
     *,
     filename: str,
     data: bytes,
-    workspace: Optional[str] = None,
-    file_id: Optional[str] = None,
+    chat_id: str,
+    uploader_user_id: str,
+    document_id: Optional[str] = None,
     size_bytes: Optional[int] = None,
 ) -> Dict[str, object]:
-    """Run the shared ingestion pipeline: parse → chunk → embed → upsert → registry.
+    """Parse → chunk → embed → upsert chunks; create Document if DB is enabled.
 
-    Returns a response dict: { ok, fileId, chunks, workspace }.
+    Returns: { ok, documentId, chunks }
     """
-    workspace_value = (workspace or config.DEFAULT_WORKSPACE).strip() or config.DEFAULT_WORKSPACE
 
     # Validate size limit
     actual_size = size_bytes if size_bytes is not None else len(data)
@@ -58,31 +58,39 @@ async def ingest_document(
 
     # Upsert into vector store
     created_at = int(time.time())
-    assigned_file_id = file_id or generate_file_id()
+    assigned_document_id = document_id or generate_document_id()
     rows: List[dict] = []
     for idx, (chunk_text_value, embedding) in enumerate(zip(chunks, embeddings)):
         row = {
-            "id": f"{assigned_file_id}:{idx}",
-            "fileId": assigned_file_id,
-            "filename": filename,
+            "id": str(uuid.uuid4()),
+            "documentId": assigned_document_id,
             "chunkId": idx,
-            "workspace": workspace_value,
             "text": chunk_text_value,
             "embedding": embedding,
             "createdAt": created_at,
+            "chatId": chat_id,
         }
         rows.append(row)
 
     upserted = await vec_store.upsert(rows)
 
-    # Update registry (async)
-    await registry.upsert_file(
-        file_id=assigned_file_id,
-        filename=filename,
-        size_bytes=actual_size,
-        workspace=workspace_value,
-        num_chunks=len(rows),
-        indexed=True,
-    )
+    # Persist Document in DB when available
+    if SessionLocal:
+        async with SessionLocal() as session:  # type: ignore[arg-type]
+            doc = Document(
+                id=uuid.UUID(assigned_document_id),
+                chat_id=uuid.UUID(chat_id),
+                uploader_user_id=uuid.UUID(uploader_user_id),
+                filename=filename,
+                mime_type=None,
+                size_bytes=actual_size,
+                storage_key=None,
+                num_chunks=len(rows),
+                indexed=True,
+                created_at=created_at,
+                updated_at=created_at,
+            )
+            session.add(doc)
+            await session.commit()
 
-    return {"ok": True, "fileId": assigned_file_id, "chunks": upserted, "workspace": workspace_value}
+    return {"ok": True, "documentId": assigned_document_id, "chunks": upserted}

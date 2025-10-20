@@ -4,9 +4,9 @@ from fastapi import FastAPI
 
 from app.lib.logger import request_logging_middleware
 from app.lib import db as db_module
-from app.routes.ask import router as ask_router
-from app.routes.delete import router as delete_router
-from app.routes.ingest import router as ingest_router
+from app.routes.chats import router as chats_router
+from app.routes.documents import router as documents_router
+from app.routes.messages import router as messages_router
 
 app = FastAPI()
 
@@ -20,6 +20,6 @@ async def health():
     return {"ok": True, "db": db_ok}
 
 # Include routes
-app.include_router(ingest_router)
-app.include_router(ask_router)
-app.include_router(delete_router)
+app.include_router(chats_router)
+app.include_router(documents_router)
+app.include_router(messages_router)

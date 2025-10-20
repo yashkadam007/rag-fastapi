@@ -14,11 +14,5 @@ registry = Registry(config.REGISTRY_PATH)
 
 @router.post("/delete")
 async def delete(payload: dict):
-    file_id = payload.get("fileId")
-    if not file_id:
-        raise HTTPException(status_code=400, detail="fileId is required")
-
-    removed = vec_store.delete_by_file_id(str(file_id))
-    await registry.delete_file(str(file_id))
-
-    return {"ok": True, "removed": removed}
+    # Legacy endpoint retained as no-op in chat-scoped v0
+    return {"ok": True, "removed": 0}

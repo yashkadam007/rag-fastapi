@@ -23,8 +23,12 @@ async def list_messages(chat_id: str, limit: Optional[int] = None, before: Optio
     if not SessionLocal:
         raise HTTPException(status_code=500, detail="Database not configured")
     from sqlalchemy import select
+    try:
+        chat_uuid = uuid.UUID(chat_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid chatId")
     async with SessionLocal() as session:  # type: ignore[arg-type]
-        stmt = select(Message).where(Message.chat_id == uuid.UUID(chat_id))
+        stmt = select(Message).where(Message.chat_id == chat_uuid)
         if before is not None:
             stmt = stmt.where(Message.created_at < int(before))
         stmt = stmt.order_by(Message.created_at.desc())
@@ -46,11 +50,15 @@ async def add_user_message(chat_id: str, payload: dict, user_id: str = Depends(r
     content: str = (payload.get("content") or "").strip()
     if not content:
         raise HTTPException(status_code=400, detail="content is required")
+    try:
+        chat_uuid = uuid.UUID(chat_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid chatId")
     now = int(time.time())
     async with SessionLocal() as session:  # type: ignore[arg-type]
         msg = Message(
             id=uuid.uuid4(),
-            chat_id=uuid.UUID(chat_id),
+            chat_id=chat_uuid,
             role="user",
             content=content,
             tokens_in=None,
@@ -69,13 +77,17 @@ async def ask(chat_id: str, payload: dict, user_id: str = Depends(require_user_i
     k: int = int(payload.get("k") or 15)
     if not q:
         raise HTTPException(status_code=400, detail="q is required")
+    try:
+        chat_uuid = uuid.UUID(chat_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid chatId")
 
     # Write user message
     user_msg = await add_user_message(chat_id, {"content": q}, user_id)  # type: ignore[arg-type]
 
     vec_store = VectorStore(config.VEC_PATH)
     q_vec = embed_query(q)
-    results = await vec_store.search(q_vec, chat_id=chat_id, k=k)
+    results = await vec_store.search(q_vec, chat_id=str(chat_uuid), k=k)
 
     context_items = results[:8]
     context_texts: List[str] = []

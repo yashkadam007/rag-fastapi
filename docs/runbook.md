@@ -73,4 +73,4 @@ alembic upgrade head
 - 401: ensure `X-User-Id` is a valid UUID.
 - 400 upload: file too large; adjust `MAX_UPLOAD_MB`.
 - 502 on ask: verify `GOOGLE_API_KEY`, model access, and outbound network.
-
+  

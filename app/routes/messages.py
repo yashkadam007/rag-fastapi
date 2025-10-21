@@ -8,7 +8,7 @@ import google.generativeai as genai
 from fastapi import APIRouter, Depends, HTTPException
 
 from app import config
-from app.lib.auth import require_user_id
+from app.lib.auth import get_current_user
 from app.lib.embeddings import embed_query
 from app.lib.db import SessionLocal
 from app.store.models import Message
@@ -19,7 +19,7 @@ router = APIRouter()
 
 
 @router.get("/chats/{chat_id}/messages")
-async def list_messages(chat_id: str, limit: Optional[int] = None, before: Optional[int] = None, user_id: str = Depends(require_user_id)):
+async def list_messages(chat_id: str, limit: Optional[int] = None, before: Optional[int] = None, user_id: str = Depends(get_current_user)):
     if not SessionLocal:
         raise HTTPException(status_code=500, detail="Database not configured")
     from sqlalchemy import select
@@ -44,7 +44,7 @@ async def list_messages(chat_id: str, limit: Optional[int] = None, before: Optio
 
 
 @router.post("/chats/{chat_id}/messages")
-async def add_user_message(chat_id: str, payload: dict, user_id: str = Depends(require_user_id)):
+async def add_user_message(chat_id: str, payload: dict, user_id: str = Depends(get_current_user)):
     if not SessionLocal:
         raise HTTPException(status_code=500, detail="Database not configured")
     content: str = (payload.get("content") or "").strip()
@@ -72,7 +72,7 @@ async def add_user_message(chat_id: str, payload: dict, user_id: str = Depends(r
 
 
 @router.post("/chats/{chat_id}/ask")
-async def ask(chat_id: str, payload: dict, user_id: str = Depends(require_user_id)):
+async def ask(chat_id: str, payload: dict, user_id: str = Depends(get_current_user)):
     q: str = (payload.get("q") or "").strip()
     k: int = int(payload.get("k") or 15)
     if not q:

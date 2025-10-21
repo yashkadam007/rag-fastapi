@@ -6,7 +6,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.lib.auth import require_user_id
+from app.lib.auth import get_current_user
 from app.lib.db import SessionLocal
 from app.store.models import Chat, Document, Message
 from app.store.models import Chunk
@@ -17,7 +17,7 @@ router = APIRouter()
 
 
 @router.post("/chats")
-async def create_chat(payload: dict, user_id: str = Depends(require_user_id)):
+async def create_chat(payload: dict, user_id: str = Depends(get_current_user)):
     if not SessionLocal:
         raise HTTPException(status_code=500, detail="Database not configured")
     title = (payload.get("title") or "Untitled").strip() or "Untitled"
@@ -41,7 +41,7 @@ async def create_chat(payload: dict, user_id: str = Depends(require_user_id)):
 
 
 @router.get("/chats")
-async def list_chats(user_id: str = Depends(require_user_id)):
+async def list_chats(user_id: str = Depends(get_current_user)):
     if not SessionLocal:
         raise HTTPException(status_code=500, detail="Database not configured")
     async with SessionLocal() as session:  # type: ignore[arg-type]
@@ -60,7 +60,7 @@ async def list_chats(user_id: str = Depends(require_user_id)):
 
 
 @router.get("/chats/{chat_id}")
-async def get_chat(chat_id: str, user_id: str = Depends(require_user_id)):
+async def get_chat(chat_id: str, user_id: str = Depends(get_current_user)):
     if not SessionLocal:
         raise HTTPException(status_code=500, detail="Database not configured")
     async with SessionLocal() as session:  # type: ignore[arg-type]
@@ -76,7 +76,7 @@ async def get_chat(chat_id: str, user_id: str = Depends(require_user_id)):
 
 
 @router.delete("/chats/{chat_id}")
-async def delete_chat(chat_id: str, user_id: str = Depends(require_user_id)):
+async def delete_chat(chat_id: str, user_id: str = Depends(get_current_user)):
     if not SessionLocal:
         raise HTTPException(status_code=500, detail="Database not configured")
     chat_uuid = uuid.UUID(chat_id)

@@ -1,3 +1,93 @@
+## Next.js Auth Integration (Cookie Sessions)
+
+This backend issues HttpOnly, Secure session cookies on `/auth/sign-in` and `/auth/sign-up`. Use the steps below to integrate in a Next.js (App Router) app.
+
+### 1) Sign Up
+```ts
+// app/(auth)/sign-up/actions.ts
+"use server";
+
+export async function signUp(data: { email: string; password: string; name?: string }) {
+  const res = await fetch(process.env.API_URL + "/auth/sign-up", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(data),
+    // Cookies are set by the server via Set-Cookie; no client handling required
+  });
+  if (!res.ok) throw new Error("Sign up failed");
+  return (await res.json()) as { ok: true; userId: string; email: string; name?: string };
+}
+```
+
+### 2) Sign In
+```ts
+// app/(auth)/sign-in/actions.ts
+"use server";
+
+export async function signIn(email: string, password: string) {
+  const res = await fetch(process.env.API_URL + "/auth/sign-in", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email, password }),
+    // On Vercel/Next, this will forward and store HttpOnly cookie in the browser
+  });
+  if (!res.ok) throw new Error("Invalid credentials");
+  return (await res.json()) as { ok: true; userId: string; email: string; name?: string };
+}
+```
+
+### 3) Sign Out
+```ts
+// app/(auth)/sign-out/actions.ts
+"use server";
+
+export async function signOut() {
+  const res = await fetch(process.env.API_URL + "/auth/sign-out", { method: "POST" });
+  if (!res.ok) throw new Error("Sign out failed");
+}
+```
+
+### 4) Calling Protected APIs from Next.js
+
+- Client components: fetch normally; the browser will send cookies automatically to same-site API. If cross-origin, set `credentials: "include"` and configure CORS.
+```ts
+await fetch(process.env.NEXT_PUBLIC_API_URL + "/chats", { credentials: "include" });
+```
+
+- Server components/actions/route handlers: forward cookies to the backend when the backend is on a different origin.
+```ts
+import { cookies } from "next/headers";
+
+export async function getChats() {
+  const cookieStore = cookies();
+  const cookieHeader = cookieStore.toString(); // serialize all cookies
+  const res = await fetch(process.env.API_URL + "/chats", {
+    headers: { cookie: cookieHeader },
+  });
+  if (!res.ok) throw new Error("Failed to fetch chats");
+  return (await res.json()) as { id: string; title: string; createdAt: number; updatedAt: number }[];
+}
+```
+
+### 5) CORS and Cookies
+
+If your Next.js app runs on a different domain, enable CORS in FastAPI with credentials allowed and same-site cookie policy compatible with your deployment:
+
+```python
+# app/main.py
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://your-frontend.example.com"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
+```
+
+Ensure your frontend fetches set `credentials: "include"` for cross-origin requests.
+
 # Runbook (Manual Test)
 
 ## Prereqs

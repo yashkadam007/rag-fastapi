@@ -61,6 +61,12 @@ except ValueError:
     EMBEDDING_DIM = 768
 USE_JSON_VECTOR_STORE: Final[bool] = os.getenv("USE_JSON_VECTOR_STORE", "false").lower() == "true"
 
+# Auth/session configuration
+SESSION_COOKIE_NAME: Final[str] = os.getenv("SESSION_COOKIE_NAME", "session")
+SESSION_TOKEN_BYTES: Final[int] = int(os.getenv("SESSION_TOKEN_BYTES", "32"))
+SESSION_TTL_SECONDS: Final[int] = int(os.getenv("SESSION_TTL_SECONDS", "1209600"))  # 14 days
+PASSWORD_HASH_SCHEME: Final[str] = os.getenv("PASSWORD_HASH_SCHEME", "pbkdf2_sha256")
+
 def data_file(path: Path) -> Path:
     """Ensure a data file exists; create with empty array if missing."""
     if not path.exists():

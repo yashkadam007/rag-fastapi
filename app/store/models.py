@@ -16,9 +16,12 @@ class User(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     auth0_sub: Mapped[str] = mapped_column(String, unique=True, nullable=True)
-    email: Mapped[str] = mapped_column(String, nullable=True)
+    email: Mapped[str] = mapped_column(String, nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=True)
     created_at: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    updated_at: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+
+Index("ux_users_email", User.email, unique=True)
 
 
 class Chat(Base):
@@ -78,4 +81,34 @@ class Chunk(Base):
 
 
 Index("idx_chunks_document_id", Chunk.document_id)
+
+
+class Account(Base):
+    __tablename__ = "accounts"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    password_hash: Mapped[str] = mapped_column(String, nullable=False)
+    email_verified: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    created_at: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    updated_at: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
+Index("idx_accounts_user_id", Account.user_id)
+
+
+class Session(Base):
+    __tablename__ = "sessions"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    token_hash: Mapped[str] = mapped_column(String, nullable=False)
+    user_agent: Mapped[str | None] = mapped_column(String, nullable=True)
+    ip_address: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_at: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    expires_at: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    revoked_at: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+
+Index("ux_sessions_token_hash", Session.token_hash, unique=True)
+Index("idx_sessions_user_id", Session.user_id)
+Index("idx_sessions_expires_at", Session.expires_at)
 

@@ -7,7 +7,7 @@ import httpx
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 
 from app import config
-from app.lib.auth import require_user_id
+from app.lib.auth import get_current_user
 from app.lib.pipeline import ingest_document
 from app.lib.db import SessionLocal
 from app.store.models import Document
@@ -18,7 +18,7 @@ router = APIRouter()
 
 
 @router.get("/chats/{chat_id}/documents")
-async def list_documents(chat_id: str, user_id: str = Depends(require_user_id)):
+async def list_documents(chat_id: str, user_id: str = Depends(get_current_user)):
     if not SessionLocal:
         raise HTTPException(status_code=500, detail="Database not configured")
     async with SessionLocal() as session:  # type: ignore[arg-type]
@@ -43,7 +43,7 @@ async def list_documents(chat_id: str, user_id: str = Depends(require_user_id)):
 async def upload_file(
     chat_id: str,
     file: UploadFile = File(...),
-    user_id: str = Depends(require_user_id),
+    user_id: str = Depends(get_current_user),
 ):
     data = await file.read()
     size_bytes = len(data)
@@ -63,7 +63,7 @@ async def upload_file(
 
 
 @router.post("/chats/{chat_id}/documents/url")
-async def ingest_url(chat_id: str, payload: dict, user_id: str = Depends(require_user_id)):
+async def ingest_url(chat_id: str, payload: dict, user_id: str = Depends(get_current_user)):
     file_url = payload.get("fileUrl")
     filename = payload.get("filename")
     if not file_url or not filename:
@@ -90,7 +90,7 @@ async def ingest_url(chat_id: str, payload: dict, user_id: str = Depends(require
 
 
 @router.delete("/documents/{document_id}")
-async def delete_document(document_id: str, user_id: str = Depends(require_user_id)):
+async def delete_document(document_id: str, user_id: str = Depends(get_current_user)):
     if not SessionLocal:
         raise HTTPException(status_code=500, detail="Database not configured")
     async with SessionLocal() as session:  # type: ignore[arg-type]

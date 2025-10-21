@@ -1,14 +1,25 @@
 # Backend Contracts (v0)
 
-Auth: send header `X-User-Id: <uuidv4>` in all requests.
+Auth: Cookie-based session. On sign-in/sign-up, server sets `Set-Cookie: session=<token>; HttpOnly; Secure; SameSite=Lax`. Send cookies with requests.
 
 ## Entities
-- User: UUID
+- User: `{ id, email, name?, createdAt, updatedAt }`
+- Account: `{ id, userId, emailVerified, createdAt, updatedAt }`
+- Session: `{ id, userId, createdAt, expiresAt, revokedAt? }`
 - Chat: `{ id, title, createdAt, updatedAt }`
 - Document: `{ id, filename, sizeBytes, numChunks, indexed, createdAt, updatedAt }`
 - Message: `{ id, role: 'user'|'assistant'|'system'|'tool', content, createdAt }`
 
 ## Endpoints
+### Auth
+- POST `/auth/sign-up`
+  - body: `{ email: string, password: string, name?: string }`
+  - resp: `{ ok: true, userId, email, name }` (sets session cookie)
+- POST `/auth/sign-in`
+  - body: `{ email: string, password: string }`
+  - resp: `{ ok: true, userId, email, name }` (sets session cookie)
+- POST `/auth/sign-out`
+  - resp: `{ ok: true }` (clears session cookie)
 
 ### Health
 - GET `/health` → `{ ok: true, db: boolean }`
@@ -52,4 +63,5 @@ On error, FastAPI default structure or `{ "detail": string }`.
 ## Notes
 - All IDs are UUIDv4 strings.
 - Only documents attached to a chat are used for retrieval in that chat.
+- Auth required for all endpoints except `/health` and `/auth/*`.
 

@@ -1,12 +1,12 @@
 - [x] Add db
 - [x] Add vector store
 - [ ] improve backend,injest, ask api's and users and auth
-- [ ] Add auth0 for user management
 - [ ] Create frontend
 - [ ] Integrate backend and frontend
 - [ ] Add logging
 - [ ] Add cache
 - [ ] Host
+- [ ] Rate limiting
 - [ ] Add observabiliity
 - [ ] Add event streaming
   

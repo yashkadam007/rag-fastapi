@@ -1,6 +1,6 @@
 # Backend Contracts (v0)
 
-Auth: Cookie-based session. On sign-in/sign-up, server sets `Set-Cookie: session=<token>; HttpOnly; Secure; SameSite=Lax`. Send cookies with requests.
+Auth: Cookie-based session. On sign-in/sign-up, server sets `Set-Cookie: session=<token>; HttpOnly; Secure; SameSite=None`. Send cookies with requests (use credentials in cross-origin fetches).
 
 ## Entities
 - User: `{ id, email, name?, createdAt, updatedAt }`
@@ -20,6 +20,8 @@ Auth: Cookie-based session. On sign-in/sign-up, server sets `Set-Cookie: session
   - resp: `{ ok: true, userId, email, name }` (sets session cookie)
 - POST `/auth/sign-out`
   - resp: `{ ok: true }` (clears session cookie)
+- GET `/auth/me`
+  - resp: `{ ok: true, userId }`
 
 ### Health
 - GET `/health` → `{ ok: true, db: boolean }`

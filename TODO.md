@@ -1,8 +1,8 @@
 - [x] Add db
 - [x] Add vector store
-- [ ] improve backend,injest, ask api's and users and auth
-- [ ] Create frontend
-- [ ] Integrate backend and frontend
+- [x] improve backend,injest, ask api's and users and auth
+- [x] Create frontend
+- [x] Integrate backend and frontend
 - [ ] Add logging
 - [ ] Add cache
 - [ ] Host

@@ -5,6 +5,7 @@ import uuid
 from typing import Optional
 
 from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Request, Response, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy import select
 
 from app import config
@@ -28,6 +29,11 @@ async def sign_up(payload: dict, request: Request, response: Response):
         raise HTTPException(status_code=400, detail="email and password are required")
     if "@" not in email:
         raise HTTPException(status_code=400, detail="invalid email")
+    try:
+        password_hash = hash_password(password)
+    except ValueError as e:
+        # Normalize auth lib validation into a client-friendly 400.
+        raise HTTPException(status_code=400, detail=str(e))
     now = int(time.time())
     async with SessionLocal() as session:  # type: ignore[arg-type]
         # check existing user by email
@@ -39,13 +45,18 @@ async def sign_up(payload: dict, request: Request, response: Response):
         acc = Account(
             id=uuid.uuid4(),
             user_id=user.id,
-            password_hash=hash_password(password),
+            password_hash=password_hash,
             email_verified=False,
             created_at=now,
             updated_at=now,
         )
         session.add(acc)
-        await session.commit()
+        try:
+            await session.commit()
+        except IntegrityError:
+            # Handles race conditions on unique indexes (e.g. email).
+            await session.rollback()
+            raise HTTPException(status_code=409, detail="account already exists")
 
     token, _ = await create_session(user.id, request.headers.get("user-agent"), request.client.host if request.client else None)
     response.set_cookie(
